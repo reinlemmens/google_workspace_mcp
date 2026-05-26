@@ -2626,6 +2626,37 @@ async def draft_gmail_message(
     return f"Draft created{attachment_info}! Draft ID: {draft_id}"
 
 
+@server.tool()
+@handle_http_errors("delete_gmail_draft", service_type="gmail")
+@require_google_service("gmail", GMAIL_COMPOSE_SCOPE)
+async def delete_gmail_draft(
+    service,
+    user_google_email: str,
+    draft_id: Annotated[str, Field(description="ID of the draft to delete.")],
+) -> str:
+    """
+    Permanently deletes a Gmail draft. The draft is removed immediately and does not
+    move to Trash. To delete only the underlying message, send the draft first and
+    then trash the resulting message instead.
+
+    Args:
+        user_google_email (str): The user's Google email address.
+        draft_id (str): The ID of the draft to delete (as returned by draft_gmail_message).
+
+    Returns:
+        str: Confirmation message that the draft was deleted.
+    """
+    logger.info(
+        f"[delete_gmail_draft] Invoked. Email: '{user_google_email}', Draft ID: '{draft_id}'"
+    )
+
+    await asyncio.to_thread(
+        service.users().drafts().delete(userId="me", id=draft_id).execute
+    )
+
+    return f"Draft deleted! Draft ID: {draft_id}"
+
+
 def _format_thread_content(
     thread_data: dict,
     thread_id: str,
